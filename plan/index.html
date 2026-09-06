@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>merenda — a plan</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         max-width: 480px; margin: 0 auto; padding: 56px 24px; text-align: center;
+         color: #1c1c1e; line-height: 1.6; background: #fffdf9; }
+  h1 { color: #21ad6e; margin: 0 0 4px; }
+  p { margin: 12px 0; }
+  .muted { color: #6e6e73; font-size: 15px; }
+  .btn { display: inline-block; margin: 10px 6px 0; padding: 12px 22px; border-radius: 999px;
+         background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; }
+  .btn.secondary { background: transparent; color: #21ad6e; border: 1.5px solid #21ad6e; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #131313; color: #ececec; }
+    .muted { color: #a1a1a6; }
+  }
+</style>
+</head>
+<body>
+<h1>merenda</h1>
+<p class="muted">The plan lives in merenda 🎈</p>
+<p id="status">Opening merenda…</p>
+<p>
+  <a id="open" class="btn" href="#">Open in merenda</a>
+  <a class="btn secondary" href="https://testflight.apple.com/join/EBmTYMAf">Not on merenda yet? Join the beta</a>
+</p>
+<p class="muted" style="margin-top:28px">Install from the beta link first, then come back and tap Open — the plan will be waiting.</p>
+<script>
+  var u = new URLSearchParams(location.search).get('p') || '';
+  var ok = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u);
+  var deep = ok ? 'friendli://plan/' + u.toLowerCase() : 'friendli://plans';
+  document.getElementById('open').href = deep;
+  if (ok) {
+    // Bounce into the app if it's installed; the buttons stay for everyone else.
+    setTimeout(function () { location.href = deep; }, 150);
+  } else {
+    document.getElementById('status').textContent = 'This link is missing its plan — ask whoever sent it to share it again.';
+  }
+</script>
+</body>
+</html>

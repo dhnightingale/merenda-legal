@@ -19,7 +19,7 @@
 <body>
 <h1>merenda</h1>
 <h2>Privacy Policy</h2>
-<p><em>Effective August 31, 2026</em></p>
+<p><em>Effective September 19, 2026</em></p>
 
 <p>merenda (formerly Friendli) is a social app for making plans with people you actually want to see. This policy explains what we collect, why, and what we never do with it.</p>
 
@@ -33,7 +33,8 @@
 <li><strong>Plans, availability, and messages</strong> — plans you create or join, your "Open to Plans" windows, and messages, photos, and videos you send in plan chats. Visible only to the people the app's rules say can see them.</li>
 <li><strong>Hangout reflections</strong> — after a hangout you can privately note how it felt. These reflections, and any scores derived from them, are <strong>never shown to anyone</strong> — not the people you met, not anyone. They only tune your own recommendations.</li>
 <li><strong>Push tokens</strong> — so we can send notifications you've enabled. You control every category in Settings, and can turn them all off.</li>
-<li><strong>Weather &amp; location (optional)</strong> — merenda can show the forecast on your plans. To do that, a plan's venue (or, only if you enable it in Settings, your approximate device location) is converted to map coordinates using Apple's geocoding service, and those coordinates plus the plan's time are sent to Open-Meteo, a weather service, to fetch the forecast. Coordinates are used only for that lookup — we never store your location on our servers, and weather is entirely optional.</li>
+<li><strong>Weather &amp; travel time (optional)</strong> — merenda can show the forecast on your plans and how long it takes to get there. To do that, a plan's venue (or, only if you enable it in Settings, your approximate device location) is converted to map coordinates using Apple's geocoding service; those coordinates plus the plan's time are sent to Open-Meteo, a weather service, to fetch the forecast, and to Apple Maps to estimate travel time. Coordinates are used only for those lookups and are not stored on our servers. Both are optional and can be turned off in Settings.</li>
+<li><strong>Dropping a pin (optional, per tap)</strong> — on the day of a plan, after you tap "Here", you can choose to drop a pin so the others can find you. Only when you tap it is your location taken, once, and posted into that plan's chat, where the people on the plan can see it — like any message you send. It is a single point at that moment, never continuous tracking, and merenda has no background location access. The pin stays in the chat like a message and is deleted with the plan or your account.</li>
 <li><strong>Calendar (optional)</strong> — merenda can add your plans to your device calendar. This uses your phone's calendar directly: nothing from your calendar is ever uploaded or leaves your device.</li>
 </ul>
 
@@ -45,7 +46,7 @@
 </ul>
 
 <h3>Service providers</h3>
-<p>We use <strong>Supabase</strong> (database, authentication, storage), <strong>Twilio</strong> (delivery of SMS verification codes), <strong>OneSignal</strong> (push notification delivery), <strong>Apple</strong> (geocoding of plan venues, and calendar on your device), and <strong>Open-Meteo</strong> (weather forecasts, receiving only coordinates and a time — never your identity). Each receives only what's needed to provide its service.</p>
+<p>We use <strong>Supabase</strong> (database, authentication, storage), <strong>Twilio</strong> (delivery of SMS verification codes), <strong>OneSignal</strong> (push notification delivery), <strong>Apple</strong> (geocoding of plan venues, travel-time estimates and the maps on your device, and calendar on your device), and <strong>Open-Meteo</strong> (weather forecasts, receiving only coordinates and a time — never your identity). Each receives only what's needed to provide its service.</p>
 
 <h3>Deleting your data</h3>
 <p>Settings → Delete account permanently removes your profile, connections, plans, messages, reflections, and photos. This is immediate and cannot be undone. You can also just email us and we'll do it for you.</p>

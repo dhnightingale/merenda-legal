@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7FZ692NGV8.com.dhnightingale.friendli.Friendli"],
+        "components": [
+          { "/": "/add/*", "comment": "merenda code → friendli://add/<id>" },
+          { "/": "/add",   "comment": "merenda code without trailing slash" },
+          { "/": "/plan/*", "comment": "plan link → friendli://plan/<id>" },
+          { "/": "/plan",   "comment": "plan link without trailing slash" }
+        ]
+      }
+    ]
+  }
+}

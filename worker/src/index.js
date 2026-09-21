@@ -237,6 +237,6 @@ function platformScript(deep) {
   // "iPhone for now" is news on a laptop, not on an iPhone.
   if (ios && !iphone) ios.style.display = 'block';
   ${deep ? `setTimeout(function () { location.href = ${JSON.stringify(deep)}; }, 150);
-  setTimeout(function () { if (status) status.textContent = 'Not opening? Install from TestFlight first, then tap Open.'; }, 1500);` : ""}
+  setTimeout(function () { if (status) status.textContent = 'Not opening? Install from TestFlight first, then tap Open.'; }, 2500);` : ""}
 })();`;
 }

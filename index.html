@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fffdf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131313" media="(prefers-color-scheme: dark)">
 <title>merenda</title>
 <meta name="description" content="The app that turns “we should hang out soon” into actual plans.">
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:title" content="merenda">
 <meta property="og:description" content="The app that turns “we should hang out soon” into actual plans.">
 <meta property="og:type" content="website">
@@ -12,32 +16,76 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://merenda.io/">
+<meta property="og:site_name" content="merenda">
+<meta name="twitter:card" content="summary_large_image">
 <style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-         max-width: 480px; margin: 0 auto; padding: 96px 24px 56px; text-align: center;
-         color: #1c1c1e; line-height: 1.6; background: #fffdf9; }
-  h1 { color: #21ad6e; font-size: 44px; margin: 0 0 8px; letter-spacing: -0.5px; }
-  p { margin: 12px 0; }
-  .lede { font-size: 19px; }
-  .muted { color: #6e6e73; font-size: 15px; }
-  .btn { display: inline-block; margin: 18px 6px 0; padding: 12px 22px; border-radius: 999px;
-         background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; }
-  footer { margin-top: 72px; font-size: 14px; }
-  footer a { color: #6e6e73; margin: 0 8px; }
+         color: #1c1c1e; line-height: 1.5; background: #fffdf9;
+         -webkit-font-smoothing: antialiased; min-height: 100dvh;
+         display: flex; flex-direction: column; }
+  main { width: 100%; max-width: 440px; margin: 0 auto; padding: 64px 20px 24px; flex: 1; }
+  /* The mark, standalone, the way the app icon shows it. */
+  .hero { text-align: center; }
+  .hero img { width: 88px; height: 88px; border-radius: 22px; display: block; margin: 0 auto 18px;
+              box-shadow: 0 10px 30px rgba(38, 106, 74, 0.22); }
+  .brand { color: #21ad6e; font-weight: 700; font-size: 22px; letter-spacing: 0.01em; margin: 0 0 14px; }
+  h1 { margin: 0 auto 10px; font-size: 28px; line-height: 1.2; letter-spacing: -0.01em; font-weight: 700; max-width: 22ch; }
+  .sub { margin: 0; font-size: 15px; color: #6e6e73; }
+  .actions { margin: 24px auto 0; max-width: 320px; display: flex; flex-direction: column; gap: 10px; }
+  .btn { display: block; width: 100%; padding: 15px 20px; border-radius: 999px; text-align: center;
+         background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; font-size: 17px; }
+  /* The product in three lines: the same paper card as the plan page. */
+  .card { margin: 40px 0 0; background: #fff; border: 1px solid #e8e5dd; border-radius: 22px; padding: 6px 22px;
+          box-shadow: 0 6px 24px rgba(28, 28, 30, 0.05); }
+  .row { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; }
+  .row + .row { border-top: 1px solid #efece5; }
+  .row svg { width: 22px; height: 22px; flex: none; color: #21ad6e; margin-top: 2px; }
+  .row b { display: block; font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .row span { font-size: 15px; color: #6e6e73; }
+  footer { padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); font-size: 13px; color: #8e8e93;
+           text-align: center; }
+  footer a { color: #8e8e93; text-decoration: none; margin: 0 8px; }
   @media (prefers-color-scheme: dark) {
     body { background: #131313; color: #ececec; }
-    .muted, footer a { color: #a1a1a6; }
+    .card { background: #1c1c1e; border-color: #2c2c2e; box-shadow: none; }
+    .row + .row { border-top-color: #2c2c2e; }
+    .sub, .row span { color: #a1a1a6; }
+    .hero img { box-shadow: none; }
   }
 </style>
 </head>
 <body>
-<h1>merenda</h1>
-<p class="lede">The app that turns “we should hang out soon” into actual plans.</p>
-<p class="muted">Boston, in beta. iPhone only for now.</p>
-<p><a class="btn" href="https://testflight.apple.com/join/EBmTYMAf">Join the beta</a></p>
+<main>
+  <section class="hero">
+    <img src="/icon.png" alt="merenda" width="88" height="88">
+    <p class="brand">merenda</p>
+    <h1>The app that turns “we should hang out soon” into actual plans.</h1>
+    <p class="sub">Boston, in beta · iPhone for now</p>
+    <div class="actions">
+      <a class="btn" href="https://testflight.apple.com/join/EBmTYMAf">Join the beta</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M8 15h3"/></svg>
+      <div><b>Say when you’re free</b><span>Tap the days you’d hang out. Takes ten seconds a week.</span></div>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 4.5"/></svg>
+      <div><b>See who’s free too</b><span>Your friends’ free time lines up with yours. No group-chat scheduling.</span></div>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-3.3 0-6 2.6-6 5.8 0 3.9 6 8.7 6 8.7s6-4.8 6-8.7C18 5.6 15.3 3 12 3z"/><path d="M12 17.5v3.5"/></svg>
+      <div><b>Make the plan</b><span>Pick a time everyone can do, invite in a tap, chat, show up.</span></div>
+    </div>
+  </section>
+</main>
 <footer>
-  <a href="/privacy/">Privacy</a>
-  <a href="mailto:hello@merenda.io">Contact</a>
+  <a href="/privacy/">Privacy</a>·<a href="mailto:hello@merenda.io">Contact</a>
 </footer>
 </body>
 </html>

@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fffdf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131313" media="(prefers-color-scheme: dark)">
 <title>merenda — add a friend</title>
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:title" content="merenda — add a friend">
 <meta property="og:description" content="Someone saved you a spot on merenda 🎈">
 <meta property="og:type" content="website">
@@ -11,53 +15,81 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://merenda.io/add/">
+<meta property="og:site_name" content="merenda">
+<meta name="twitter:card" content="summary_large_image">
 <style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-         max-width: 480px; margin: 0 auto; padding: 56px 24px; text-align: center;
-         color: #1c1c1e; line-height: 1.6; background: #fffdf9; }
-  h1 { color: #21ad6e; margin: 0 0 4px; }
-  p { margin: 12px 0; }
-  .muted { color: #6e6e73; font-size: 15px; }
-  .btn { display: inline-block; margin: 10px 6px 0; padding: 12px 22px; border-radius: 999px;
-         background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; }
-  .btn.secondary { background: transparent; color: #21ad6e; border: 1.5px solid #21ad6e; }
+         color: #1c1c1e; line-height: 1.5; background: #fffdf9;
+         -webkit-font-smoothing: antialiased; min-height: 100dvh;
+         display: flex; flex-direction: column; }
+  main { width: 100%; max-width: 440px; margin: 0 auto; padding: 40px 20px 24px; flex: 1; }
+  .mast { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; text-decoration: none; }
+  .mast img { width: 40px; height: 40px; border-radius: 10px; display: block; }
+  .mast span { color: #21ad6e; font-weight: 700; font-size: 18px; letter-spacing: 0.01em; }
+  .card { background: #fff; border: 1px solid #e8e5dd; border-radius: 22px; padding: 22px 22px 20px;
+          box-shadow: 0 6px 24px rgba(28, 28, 30, 0.05); text-align: left; }
+  .eyebrow { color: #21ad6e; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+             text-transform: uppercase; margin: 0 0 8px; }
+  h1 { margin: 0 0 14px; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; font-weight: 700; }
+  .fact { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; font-size: 16px; }
+  .actions { margin: 20px 0 0; display: flex; flex-direction: column; gap: 10px; }
+  .btn { display: block; width: 100%; padding: 15px 20px; border-radius: 999px; text-align: center;
+         background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; font-size: 17px; }
+  .btn.secondary { background: rgba(33, 173, 110, 0.10); color: #21ad6e; }
+  .status { min-height: 22px; margin: 12px 0 0; font-size: 14px; color: #6e6e73; text-align: center; }
+  .about { margin: 28px 0 0; padding: 0 4px; font-size: 15px; color: #6e6e73; text-align: center; }
+  .about strong { color: #1c1c1e; font-weight: 600; }
+  footer { padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); font-size: 13px; color: #8e8e93;
+           text-align: center; }
+  footer a { color: #8e8e93; text-decoration: none; margin: 0 8px; }
   .ios { display: none; }
   @media (prefers-color-scheme: dark) {
     body { background: #131313; color: #ececec; }
-    .muted { color: #a1a1a6; }
+    .card { background: #1c1c1e; border-color: #2c2c2e; box-shadow: none; }
+    .about strong { color: #ececec; }
+    .status, .about { color: #a1a1a6; }
   }
 </style>
 </head>
 <body>
-<h1>merenda</h1>
-<p class="muted">Someone saved you a spot 🎈</p>
-<p id="status" class="muted">&nbsp;</p>
-<p>
-  <a id="open" class="btn" href="#">Open in merenda</a>
-  <a id="beta" class="btn secondary" href="https://testflight.apple.com/join/EBmTYMAf">Not on merenda yet? Join the beta</a>
-</p>
-<p id="ios" class="muted ios">merenda is on iPhone for now.</p>
-<p id="install" class="muted" style="margin-top:28px">Install from the beta link first, then come back and tap Open — the person who sent this will be waiting.</p>
+<main>
+<a class="mast" href="/"><img src="/icon.png" alt="" width="40" height="40"><span>merenda</span></a>
+<section class="card">
+  <p class="eyebrow">Add a friend</p>
+  <h1>Someone saved you a spot</h1>
+  <p class="fact"><span>Open the link in merenda and you’re connected — no searching, no request to wait on.</span></p>
+  <div class="actions">
+    <a id="open" class="btn" href="#">Open in merenda</a>
+    <a id="beta" class="btn secondary" href="https://testflight.apple.com/join/EBmTYMAf">Get merenda on TestFlight</a>
+  </div>
+  <p id="status" class="status">&nbsp;</p>
+</section>
+<p class="about"><strong>merenda</strong> is where friends keep plans. Install it, come back, tap Open — the person who sent this will be waiting.</p>
+<p id="ios" class="about ios">merenda is on iPhone for now.</p>
+</main>
+<footer><a href="/">merenda.io</a>·<a href="/privacy/">Privacy</a></footer>
 <script>
   var u = new URLSearchParams(location.search).get('u') || '';
   var ok = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u);
   var deep = ok ? 'friendli://add/' + u.toLowerCase() : 'friendli://connect';
   document.getElementById('open').href = deep;
+  var status = document.getElementById('status');
   if (ok) {
     // Bounce into the app if it's installed; the buttons stay for everyone else, and
     // after a beat the status says what to do when nothing opened.
     setTimeout(function () { location.href = deep; }, 150);
-    setTimeout(function () { document.getElementById('status').textContent = 'Not opening? Install first, then come back and tap Open.'; }, 1500);
+    setTimeout(function () { status.textContent = 'Not opening? Install from TestFlight first, then tap Open.'; }, 2500);
   } else {
-    document.getElementById('status').textContent = 'This link is missing its code — ask your friend to share it again.';
+    status.textContent = 'This link is missing its code — ask your friend to share it again.';
   }
-  // Android has no beta to join yet — say so instead of pointing at TestFlight.
-  var android = /Android/i.test(navigator.userAgent);
-  document.getElementById('ios').style.display = 'block';
-  if (android) {
-    document.getElementById('beta').style.display = 'none';
-    document.getElementById('install').style.display = 'none';
-  }
+  // Android has no beta to join yet — say so instead of pointing at TestFlight. "iPhone
+  // for now" is news on a laptop, not on an iPhone.
+  var ua = navigator.userAgent, android = /Android/i.test(ua), iphone = /iPhone|iPad|iPod/i.test(ua);
+  if (android) document.getElementById('beta').style.display = 'none';
+  if (!iphone) document.getElementById('ios').style.display = 'block';
 </script>
 </body>
 </html>

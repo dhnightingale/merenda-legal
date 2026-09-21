@@ -10,14 +10,18 @@
 // Paths without a token (/plan, /plan/, /plan/?p=<uuid>) fall through to the static
 // site on GitHub Pages, which keeps handling the pre-token uuid links.
 
+import { ImageResponse, loadGoogleFont } from "workers-og";
+
 const TOKEN = /^[A-Za-z0-9_-]{16}$/;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const segments = url.pathname.split("/").filter(Boolean); // ["plan", "<token>"]
-    const token = segments.length === 2 && segments[0] === "plan" ? segments[1] : null;
+    const segments = url.pathname.split("/").filter(Boolean); // ["plan", "<token>", "og.png"?]
+    const token = segments.length >= 2 && segments[0] === "plan" ? segments[1] : null;
     if (!token || !TOKEN.test(token)) return fetch(request);
+    if (segments.length === 3 && segments[2] === "og.png") return ogImage(request, env, ctx, token);
+    if (segments.length !== 2) return fetch(request);
 
     const preview = await fetchPreview(env, token);
     const html = preview ? livePage(env, token, preview, url) : offPage(env, url);
@@ -89,7 +93,7 @@ function whenPhrase(p) {
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function shell({ title, description, pageURL, body, script }) {
+function shell({ title, description, pageURL, body, script, image }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -104,7 +108,7 @@ function shell({ title, description, pageURL, body, script }) {
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="${esc(pageURL)}">
-<meta property="og:image" content="https://merenda.io/og.png">
+<meta property="og:image" content="${esc(image || "https://merenda.io/og.png")}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="merenda">
@@ -180,6 +184,7 @@ function livePage(env, token, p, url) {
     title: p.title,
     description,
     pageURL: `https://merenda.io/plan/${token}`,
+    image: `https://merenda.io/plan/${token}/og.png`,
     body: `
 <section class="card">
   <p class="eyebrow">You’re invited</p>
@@ -239,4 +244,70 @@ function platformScript(deep) {
   ${deep ? `setTimeout(function () { location.href = ${JSON.stringify(deep)}; }, 150);
   setTimeout(function () { if (status) status.textContent = 'Not opening? Install from TestFlight first, then tap Open.'; }, 2500);` : ""}
 })();`;
+}
+
+// MARK: The preview image
+
+// merenda.io/plan/<token>/og.png — the card iMessage, WhatsApp and Slack draw for a
+// shared link: the plan's title, when, and the host's first name on the site's paper,
+// with the mark top-left. Rendered from the same preview RPC as the page, so a revoked
+// link falls back to the generic brand card and a time change shows within the cache
+// window. Fonts come from Google Fonts once per isolate; the PNG sits in the edge cache
+// for five minutes.
+const OG_CACHE_SECONDS = 300;
+let fontCache = null;
+
+async function ogFonts() {
+  if (!fontCache) {
+    fontCache = Promise.all([
+      loadGoogleFont({ family: "Inter", weight: 700 }),
+      loadGoogleFont({ family: "Inter", weight: 500 }),
+    ]).then(([bold, medium]) => [
+      { name: "Inter", data: bold, weight: 700, style: "normal" },
+      { name: "Inter", data: medium, weight: 500, style: "normal" },
+    ]).catch((e) => { fontCache = null; throw e; });
+  }
+  return fontCache;
+}
+
+async function ogImage(request, env, ctx, token) {
+  const cache = caches.default;
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const preview = env.DEMO_PREVIEW && token === "DEMODEMODEMODEMO"
+    ? { title: new URL(request.url).searchParams.get("t") || "Butter blind taste test", host_name: "Danny", scheduled_at: new Date(Date.now() + 86_400_000).toISOString(), time_block: "evening", host_tz: "America/New_York" }
+    : await fetchPreview(env, token);
+  if (!preview) return Response.redirect("https://merenda.io/og.png", 302);
+
+  const raw = whenPhrase(preview);
+  const when = raw.replace(/^on /, "").replace(/^\w/, (c) => c.toUpperCase());
+  const host = preview.host_name || "a friend";
+  const title = String(preview.title);
+  // Long titles step down rather than wrap off the card.
+  const size = title.length > 44 ? 56 : title.length > 28 ? 68 : 80;
+
+  const html = `
+<div style="display: flex; flex-direction: column; justify-content: space-between; width: 1200px; height: 630px; padding: 64px 72px; background: #fffdf9; color: #1c1c1e; font-family: Inter;">
+  <div style="display: flex; align-items: center;">
+    <img src="https://merenda.io/icon.png" width="56" height="56" style="border-radius: 14px;" />
+    <div style="display: flex; margin-left: 16px; font-size: 30px; font-weight: 700; color: #21ad6e;">merenda</div>
+  </div>
+  <div style="display: flex; flex-direction: column;">
+    <div style="display: flex; font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #21ad6e; margin-bottom: 14px;">YOU’RE INVITED</div>
+    <div style="display: flex; font-size: ${size}px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; max-height: ${size * 2.3}px; overflow: hidden;">${esc(title)}</div>
+    <div style="display: flex; margin-top: 26px; font-size: 32px; font-weight: 500; color: #6e6e73;">${esc(when ? when + "  ·  " : "")}Hosted by ${esc(host)}</div>
+  </div>
+</div>`;
+
+  const image = new ImageResponse(html, { width: 1200, height: 630, fonts: await ogFonts() });
+  const response = new Response(image.body, {
+    headers: {
+      "content-type": "image/png",
+      "cache-control": `public, max-age=${OG_CACHE_SECONDS}`,
+      "x-robots-tag": "noindex",
+    },
+  });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
 }

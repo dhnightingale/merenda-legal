@@ -153,7 +153,8 @@ function livePage(env, token, p, url) {
   <a id="beta" class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Not on merenda yet? Join the beta</a>
 </p>
 <p id="ios" class="muted ios">merenda is on iPhone for now.</p>
-<p id="install" class="muted" style="margin-top:28px">Install from the beta link first, then come back and tap Open — the plan will be waiting.</p>`,
+<p class="muted" style="margin-top:28px">merenda is where friends keep plans. Join and this one’s waiting for you, with the chat and who’s coming.</p>
+<p id="install" class="muted">Install from the beta link first, then come back and tap Open.</p>`,
     script: platformScript(deep),
   });
 }

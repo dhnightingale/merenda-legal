@@ -1,0 +1,23 @@
+# The merenda.io plan-link page. Runs in front of GitHub Pages for /plan/<token> only;
+# everything else on the domain (the landing page, /privacy/, /add/, the AASA, the
+# legacy /plan/?p=<uuid> bounce) still comes straight from the static site.
+#
+# Deploy:  npx wrangler login   (once, opens the browser)
+#          npx wrangler deploy
+# Needs the apex DNS records proxied (orange cloud) in Cloudflare with SSL/TLS set to
+# Full (strict) — a route can only intercept traffic Cloudflare terminates.
+name = "merenda-plan-link"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+routes = [
+  { pattern = "merenda.io/plan/*", zone_name = "merenda.io" },
+  { pattern = "www.merenda.io/plan/*", zone_name = "merenda.io" },
+]
+
+[vars]
+# The anon key is public by design (it ships in the app); RLS + the token do the gating.
+SUPABASE_URL = "https://xpokrpmnpaiumxfmykwy.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwb2tycG1ucGFpdW14Zm15a3d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNzY2ODEsImV4cCI6MjA5Nzc1MjY4MX0.qPweQ3DO18wbh105TUYCjjBuoVdV-hSlLuKT8lWnd0M"
+TESTFLIGHT_URL = "https://testflight.apple.com/join/EBmTYMAf"

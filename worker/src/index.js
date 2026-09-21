@@ -18,6 +18,15 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const segments = url.pathname.split("/").filter(Boolean); // ["plan", "<token>", "og.png"?]
+    // merenda.io/add/?u=<id>&n=<first name>: the same page GitHub Pages serves, but
+    // with the sender's name on it and on its link card. The name is whatever the app
+    // put in the link — the site never turns a user id into a name.
+    if (segments[0] === "add") {
+      if (segments.length === 1) return addPage(env, url);
+      if (segments.length === 2 && segments[1] === "og.png") return addImage(request, env, ctx, url);
+      return fetch(request);
+    }
+    if (env.DEMO_PREVIEW && segments[0] === "og" && segments[1] === "render") return demoRender(url);
     const token = segments.length >= 2 && segments[0] === "plan" ? segments[1] : null;
     if (!token || !TOKEN.test(token)) return fetch(request);
     if (segments.length === 3 && segments[2] === "og.png") return ogImage(request, env, ctx, token);
@@ -246,6 +255,91 @@ function platformScript(deep) {
 })();`;
 }
 
+// MARK: The add page
+
+/// The first name a link carries, made safe for a page and a card: letters, marks,
+/// spaces and the punctuation names have; 24 characters at most; else nothing.
+function senderName(url) {
+  const raw = (url.searchParams.get("n") || "").normalize("NFC").trim();
+  const clean = raw.replace(/[^\p{L}\p{M}\s'’.-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 24);
+  return clean.length >= 1 ? clean : "";
+}
+
+function addPage(env, url) {
+  const name = senderName(url);
+  const headline = name ? `${name} saved you a spot` : "Someone saved you a spot";
+  const image = `https://merenda.io/add/og.png${name ? "?n=" + encodeURIComponent(name) : ""}`;
+  return new Response(shell({
+    title: `${headline} on merenda`,
+    description: "Open the link in merenda and you’re connected 🎈",
+    pageURL: "https://merenda.io/add/",
+    image,
+    body: `
+<section class="card">
+  <p class="eyebrow">Add a friend</p>
+  <h1>${esc(headline)}</h1>
+  <p class="fact"><span>Open the link in merenda and you’re connected — no searching, no request to wait on.</span></p>
+  <div class="actions">
+    <a id="open" class="btn" href="#">Open in merenda</a>
+    <a id="beta" class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Get merenda on TestFlight</a>
+  </div>
+  <p id="status" class="status">&nbsp;</p>
+</section>
+<p class="about"><strong>merenda</strong> is where friends keep plans. Install it, come back, tap Open — ${name ? esc(name) : "the person who sent this"} will be waiting.</p>
+<p id="ios" class="about ios">merenda is on iPhone for now.</p>`,
+    script: addScript(),
+  }), {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" },
+  });
+}
+
+// The static page's bounce, unchanged: the id is read from the query on the phone.
+function addScript() {
+  return `(function () {
+  var u = new URLSearchParams(location.search).get('u') || '';
+  var ok = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u);
+  var deep = ok ? 'friendli://add/' + u.toLowerCase() : 'friendli://connect';
+  document.getElementById('open').href = deep;
+  var status = document.getElementById('status');
+  if (ok) {
+    setTimeout(function () { location.href = deep; }, 150);
+    setTimeout(function () { status.textContent = 'Not opening? Install from TestFlight first, then tap Open.'; }, 2500);
+  } else {
+    status.textContent = 'This link is missing its code — ask your friend to share it again.';
+  }
+  var ua = navigator.userAgent, android = /Android/i.test(ua), iphone = /iPhone|iPad|iPod/i.test(ua);
+  if (android) document.getElementById('beta').style.display = 'none';
+  if (!iphone) document.getElementById('ios').style.display = 'block';
+})();`;
+}
+
+async function addImage(request, env, ctx, url) {
+  const cache = caches.default;
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const name = senderName(url);
+  const response = await renderCard({
+    eyebrow: "ADD A FRIEND",
+    title: name ? `${name} saved you a spot` : "Someone saved you a spot",
+    sub: "Open the link in merenda and you’re connected",
+    maxAge: 86_400,
+  });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
+}
+
+// wrangler dev only: renders any card, for making the site's static images
+// (/og.png is the home card, made here once and committed).
+function demoRender(url) {
+  return renderCard({
+    eyebrow: url.searchParams.get("eyebrow") || "",
+    title: url.searchParams.get("title") || "",
+    sub: url.searchParams.get("sub") || "",
+    maxAge: 0,
+  });
+}
+
 // MARK: The preview image
 
 // merenda.io/plan/<token>/og.png — the card iMessage, WhatsApp and Slack draw for a
@@ -283,10 +377,21 @@ async function ogImage(request, env, ctx, token) {
   const raw = whenPhrase(preview);
   const when = raw.replace(/^on /, "").replace(/^\w/, (c) => c.toUpperCase());
   const host = preview.host_name || "a friend";
-  const title = String(preview.title);
-  // Long titles step down rather than wrap off the card.
-  const size = title.length > 44 ? 56 : title.length > 28 ? 68 : 80;
+  const response = await renderCard({
+    eyebrow: "YOU’RE INVITED",
+    title: String(preview.title),
+    sub: `${when ? when + "  ·  " : ""}Hosted by ${host}`,
+    maxAge: OG_CACHE_SECONDS,
+  });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
+}
 
+/// One card for every preview: the mark top-left, an eyebrow, a title that steps down
+/// rather than wrap off the card, one grey line under it. The plan card, the add card
+/// and the home card are the same picture with different words.
+async function renderCard({ eyebrow, title, sub, maxAge }) {
+  const size = title.length > 44 ? 56 : title.length > 28 ? 68 : 80;
   const html = `
 <div style="display: flex; flex-direction: column; justify-content: space-between; width: 1200px; height: 630px; padding: 64px 72px; background: #fffdf9; color: #1c1c1e; font-family: Inter;">
   <div style="display: flex; align-items: center;">
@@ -294,20 +399,17 @@ async function ogImage(request, env, ctx, token) {
     <div style="display: flex; margin-left: 16px; font-size: 30px; font-weight: 700; color: #21ad6e;">merenda</div>
   </div>
   <div style="display: flex; flex-direction: column;">
-    <div style="display: flex; font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #21ad6e; margin-bottom: 14px;">YOU’RE INVITED</div>
+    ${eyebrow ? `<div style="display: flex; font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #21ad6e; margin-bottom: 14px;">${esc(eyebrow)}</div>` : ""}
     <div style="display: flex; font-size: ${size}px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; max-height: ${size * 2.3}px; overflow: hidden;">${esc(title)}</div>
-    <div style="display: flex; margin-top: 26px; font-size: 32px; font-weight: 500; color: #6e6e73;">${esc(when ? when + "  ·  " : "")}Hosted by ${esc(host)}</div>
+    ${sub ? `<div style="display: flex; margin-top: 26px; font-size: 32px; font-weight: 500; color: #6e6e73;">${esc(sub)}</div>` : ""}
   </div>
 </div>`;
-
   const image = new ImageResponse(html, { width: 1200, height: 630, fonts: await ogFonts() });
-  const response = new Response(image.body, {
+  return new Response(image.body, {
     headers: {
       "content-type": "image/png",
-      "cache-control": `public, max-age=${OG_CACHE_SECONDS}`,
+      "cache-control": maxAge ? `public, max-age=${maxAge}` : "no-store",
       "x-robots-tag": "noindex",
     },
   });
-  ctx.waitUntil(cache.put(request, response.clone()));
-  return response;
 }

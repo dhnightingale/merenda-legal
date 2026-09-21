@@ -1,4 +1,5 @@
-# The merenda.io plan-link page. Runs in front of GitHub Pages for /plan/<token> only;
+# The merenda.io plan-link and add-a-friend pages. Run in front of GitHub Pages for
+# /plan/<token> and /add/ (the sender's name on the page and its card);
 # everything else on the domain (the landing page, /privacy/, /add/, the AASA, the
 # legacy /plan/?p=<uuid> bounce) still comes straight from the static site.
 #
@@ -14,6 +15,8 @@ workers_dev = false
 routes = [
   { pattern = "merenda.io/plan/*", zone_name = "merenda.io" },
   { pattern = "www.merenda.io/plan/*", zone_name = "merenda.io" },
+  { pattern = "merenda.io/add/*", zone_name = "merenda.io" },
+  { pattern = "www.merenda.io/add/*", zone_name = "merenda.io" },
 ]
 
 [vars]

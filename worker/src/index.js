@@ -116,6 +116,8 @@ function shell({ title, description, pageURL, body, script }) {
   .btn { display: inline-block; margin: 10px 6px 0; padding: 12px 22px; border-radius: 999px;
          background: #21ad6e; color: #fff; text-decoration: none; font-weight: 600; }
   .btn.secondary { background: transparent; color: #21ad6e; border: 1.5px solid #21ad6e; }
+  .link { color: #21ad6e; font-weight: 600; text-decoration: none; }
+  .ios { display: none; }
   @media (prefers-color-scheme: dark) {
     body { background: #131313; color: #ececec; }
     .muted { color: #a1a1a6; }
@@ -145,13 +147,14 @@ function livePage(env, token, p, url) {
 <p class="brand">merenda</p>
 <h1>${esc(p.title)}</h1>
 <p class="muted">${esc(when)}${when ? " · " : ""}Hosted by ${esc(host)}</p>
-<p id="status">Opening merenda…</p>
+<p id="status" class="muted">&nbsp;</p>
 <p>
   <a class="btn" href="${deep}">Open in merenda</a>
-  <a class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Not on merenda yet? Join the beta</a>
+  <a id="beta" class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Not on merenda yet? Join the beta</a>
 </p>
-<p class="muted" style="margin-top:28px">Install from the beta link first, then come back and tap Open — the plan will be waiting.</p>`,
-    script: `setTimeout(function () { location.href = ${JSON.stringify(deep)}; }, 150);`,
+<p id="ios" class="muted ios">merenda is on iPhone for now.</p>
+<p id="install" class="muted" style="margin-top:28px">Install from the beta link first, then come back and tap Open — the plan will be waiting.</p>`,
+    script: platformScript(deep),
   });
 }
 
@@ -165,8 +168,32 @@ function offPage(env, url) {
 <h1>This link isn’t live anymore</h1>
 <p class="muted">The host turned it off, or the plan has come and gone. Ask them for a fresh one.</p>
 <p>
-  <a class="btn" href="friendli://plans">Open merenda</a>
-  <a class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Not on merenda yet? Join the beta</a>
-</p>`,
+  <a id="beta" class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Not on merenda yet? Join the beta</a>
+</p>
+<p><a class="link" href="friendli://plans">Open merenda</a></p>
+<p id="ios" class="muted ios">merenda is on iPhone for now.</p>`,
+    script: platformScript(null),
   });
+}
+
+// The bounce, and the honest version of the page for everyone it can't help. No
+// "Opening…" promise up front: if the app is here the page is gone before anyone
+// reads it, and if it isn't, a line that never resolves reads as broken. After a beat
+// the status says what to do instead. Android gets the truth in place of a TestFlight
+// door that leads nowhere.
+function platformScript(deep) {
+  return `(function () {
+  var android = /Android/i.test(navigator.userAgent);
+  var ios = document.getElementById('ios'), beta = document.getElementById('beta'),
+      status = document.getElementById('status'), install = document.getElementById('install');
+  if (android) {
+    if (beta) beta.style.display = 'none';
+    if (install) install.style.display = 'none';
+    if (ios) ios.style.display = 'block';
+    return;
+  }
+  if (ios) ios.style.display = 'block';
+  ${deep ? `setTimeout(function () { location.href = ${JSON.stringify(deep)}; }, 150);
+  setTimeout(function () { if (status) status.textContent = 'Not opening? Install first, then come back and tap Open.'; }, 1500);` : ""}
+})();`;
 }

@@ -19,6 +19,7 @@ routes = [
   { pattern = "www.merenda.io/add/*", zone_name = "merenda.io" },
   { pattern = "merenda.io/boston", zone_name = "merenda.io" },
   { pattern = "www.merenda.io/boston", zone_name = "merenda.io" },
+  { pattern = "merenda.io/photo/*", zone_name = "merenda.io" },
 ]
 
 [vars]

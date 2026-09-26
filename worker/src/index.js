@@ -29,6 +29,10 @@ export default {
     // merenda.io/boston — the week's digest as a public page (2026-09-26): city
     // content only, cached half an hour, indexable. Every card is a door into the app.
     if (segments[0] === "boston" && segments.length === 1) return cityPage(env, url, "boston", "Boston");
+    // merenda.io/photo/<google photo resource name>?w=320 — the venue photo behind a
+    // card, fetched with the Worker's key and cached a day; the app never talks to
+    // Google and nothing is stored (2026-09-26).
+    if (segments[0] === "photo" && segments.length > 1) return venuePhoto(request, env, ctx, url, segments.slice(1).join("/"));
     if (env.DEMO_PREVIEW && segments[0] === "og" && segments[1] === "render") return demoRender(url);
     const token = segments.length >= 2 && segments[0] === "plan" ? segments[1] : null;
     if (!token || !TOKEN.test(token)) return fetch(request);
@@ -539,4 +543,21 @@ ${list.map(ideaCard).join("\n")}`).join("\n")}
       "cache-control": "public, max-age=1800",
     },
   });
+}
+
+
+// MARK: Venue photos
+
+async function venuePhoto(request, env, ctx, url, name) {
+  if (!env.GOOGLE_PLACES_API_KEY || !/^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(name)) return new Response("", { status: 404 });
+  const w = Math.min(1200, Math.max(120, Number(url.searchParams.get("w") || 480)));
+  const cache = caches.default;
+  const key = new Request(`https://merenda.io/photo/${name}?w=${w}`);
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  const res = await fetch(`https://places.googleapis.com/v1/${name}/media?maxWidthPx=${w}&key=${env.GOOGLE_PLACES_API_KEY}`, { redirect: "follow" });
+  if (!res.ok) return new Response("", { status: 404 });
+  const out = new Response(res.body, { status: 200, headers: { "content-type": res.headers.get("content-type") || "image/jpeg", "cache-control": "public, max-age=86400" } });
+  ctx.waitUntil(cache.put(key, out.clone()));
+  return out;
 }

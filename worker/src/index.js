@@ -449,7 +449,7 @@ function citySections(ideas, now) {
   const dayOf = (d) => new Date(new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) + "T00:00:00Z");
   const today = dayOf(now);
   const wd = today.getUTCDay(); // 0 = Sunday
-  const daysToFri = wd === 0 ? -2 : (5 - wd + 7) % 7;
+  const daysToFri = wd === 0 ? -2 : wd === 6 ? -1 : (5 - wd);
   const fri = new Date(today.getTime() + daysToFri * 86400000);
   const mon = new Date(fri.getTime() + 3 * 86400000);
   const horizon = new Date(now.getTime() + 14 * 86400000);

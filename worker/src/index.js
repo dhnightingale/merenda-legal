@@ -26,6 +26,9 @@ export default {
       if (segments.length === 2 && segments[1] === "og.png") return addImage(request, env, ctx, url);
       return fetch(request);
     }
+    // merenda.io/boston — the week's digest as a public page (2026-09-26): city
+    // content only, cached half an hour, indexable. Every card is a door into the app.
+    if (segments[0] === "boston" && segments.length === 1) return cityPage(env, url, "boston", "Boston");
     if (env.DEMO_PREVIEW && segments[0] === "og" && segments[1] === "render") return demoRender(url);
     const token = segments.length >= 2 && segments[0] === "plan" ? segments[1] : null;
     if (!token || !TOKEN.test(token)) return fetch(request);
@@ -410,6 +413,130 @@ async function renderCard({ eyebrow, title, sub, maxAge }) {
       "content-type": "image/png",
       "cache-control": maxAge ? `public, max-age=${maxAge}` : "no-store",
       "x-robots-tag": "noindex",
+    },
+  });
+}
+
+
+// MARK: The city page
+
+async function fetchDigest(env, city) {
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/idea_digest_public`, {
+      method: "POST",
+      headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_city: city }),
+      cf: { cacheTtl: 1800, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d && d.ideas ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+const DAY_NAMES = { mon: "Mondays", tue: "Tuesdays", wed: "Wednesdays", thu: "Thursdays", fri: "Fridays", sat: "Saturdays", sun: "Sundays" };
+const SOURCE_NAMES = { "thebostoncalendar.com": "Boston Calendar", "bostonmagazine.com": "Boston Magazine", "boston.eater.com": "Eater Boston", "timeout.com": "Time Out", "espn.com": "ESPN", "boston.gov": "City of Boston", "icaboston.org": "the ICA", "mfa.org": "the MFA", "sowaboston.com": "SoWa", "bpl.bibliocommons.com": "the BPL", "ccae.org": "CCAE", "coolidge.org": "the Coolidge", "boston.com": "Boston.com" };
+function sourceName(u) {
+  try { const h = new URL(u).hostname.replace(/^www\./, ""); return SOURCE_NAMES[h] || h; } catch { return "source"; }
+}
+
+/** The app's sections, in the app's order: before the weekend, the weekend, every
+ *  week, later this month, just opened, the season. Games stay in the app. */
+function citySections(ideas, now) {
+  const tz = "America/New_York";
+  const dayOf = (d) => new Date(new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) + "T00:00:00Z");
+  const today = dayOf(now);
+  const wd = today.getUTCDay(); // 0 = Sunday
+  const daysToFri = wd === 0 ? -2 : (5 - wd + 7) % 7;
+  const fri = new Date(today.getTime() + daysToFri * 86400000);
+  const mon = new Date(fri.getTime() + 3 * 86400000);
+  const horizon = new Date(now.getTime() + 14 * 86400000);
+  const byStart = (a, b) => (a.window.start < b.window.start ? -1 : 1);
+  const events = ideas.filter((i) => i.kind === "event" && !i.id.includes(":game:") && i.window && new Date(i.window.end) > now && new Date(i.window.start) < horizon);
+  const weekend = events.filter((i) => new Date(i.window.start) < mon && new Date(i.window.end) >= fri && new Date(i.window.start) >= fri).sort(byStart);
+  const before = events.filter((i) => new Date(i.window.start) < fri).sort(byStart);
+  const placed = new Set([...weekend, ...before].map((i) => i.id));
+  const later = events.filter((i) => !placed.has(i.id)).sort(byStart);
+  const order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+  const start = order.indexOf(["sun", "mon", "tue", "wed", "thu", "fri", "sat"][wd]);
+  const away = (i) => Math.min(...(i.days || []).map((d) => (order.indexOf(d) - start + 7) % 7), 7);
+  const weekly = ideas.filter((i) => i.kind === "weekly").sort((a, b) => away(a) - away(b) || a.title.localeCompare(b.title));
+  const opened = ideas.filter((i) => i.kind === "new");
+  const season = ideas.filter((i) => (i.kind === "seasonal" || i.kind === "evergreen") && !i.id.includes(":place:"));
+  return [
+    ["Before the weekend", before], ["This weekend", weekend], ["Every week", weekly],
+    ["Later this month", later], ["Just opened", opened], ["The season", season],
+  ].filter(([, list]) => list.length);
+}
+
+function ideaCard(i) {
+  const place = i.place && i.place.name ? `<span>${esc(i.place.name)}</span>` : "";
+  const via = i.citation && i.citation.url ? `<a class="link" href="${esc(i.citation.url)}" rel="nofollow noopener">via ${esc(sourceName(i.citation.url))} ↗</a>` : "";
+  const chip = i.kind === "weekly" && i.days && i.days.length === 1
+    ? `<span class="chip">${esc(DAY_NAMES[i.days[0]] || "Weekly")}${i.time ? " " + esc(i.time.replace(":00", "")) : ""}</span>`
+    : i.kind === "new" ? `<span class="chip">Just opened</span>` : "";
+  const tag = i.custom && i.custom.label ? `${esc(i.custom.emoji || "")} ${esc(i.custom.label)}` : (i.tags && i.tags[0] ? esc(i.tags[0]) : "");
+  return `<article class="idea" id="${esc(i.id)}">
+  <h2>${esc(i.title)}</h2>
+  <p class="blurb">${esc(i.blurb || "")}</p>
+  <p class="chips">${tag ? `<span class="chip">${tag}</span>` : ""}${chip}</p>
+  <p class="meta">${place}${place && via ? " · " : ""}${via}</p>
+  <a class="make" href="friendli://idea/${encodeURIComponent(i.id)}">Make a plan</a>
+</article>`;
+}
+
+async function cityPage(env, url, city, cityName) {
+  const d = await fetchDigest(env, city);
+  const now = new Date();
+  const sections = d ? citySections(d.ideas, now) : [];
+  const total = sections.reduce((n, [, l]) => n + l.length, 0);
+  const description = `${total} things worth doing in ${cityName} over the next two weeks: what's on, weekly nights, new places. Picked by merenda every Thursday.`;
+  const body = `
+<section class="card head">
+  <p class="eyebrow">This week</p>
+  <h1>What’s on in ${esc(cityName)}</h1>
+  <p class="sub">${esc(description)}</p>
+  <div class="actions">
+    <a id="beta" class="btn secondary" href="${esc(env.TESTFLIGHT_URL)}">Get merenda on TestFlight</a>
+  </div>
+</section>
+${sections.map(([title, list]) => `
+<h3 class="section">${esc(title)} <span class="count">${list.length}</span></h3>
+${list.map(ideaCard).join("\n")}`).join("\n")}
+<p class="about">Every card opens as a plan in <strong>merenda</strong>, with your friends and a time on it. Games are in the app too — every Sox, Celtics, Bruins and Patriots night.</p>
+<p id="ios" class="about ios">merenda is on iPhone for now.</p>`;
+  const html = shell({
+    title: `What’s on in ${cityName} · merenda`,
+    description,
+    pageURL: `https://merenda.io/${city}`,
+    body,
+    script: platformScript(null),
+  }).replace("</style>", `
+  .card.head { margin-bottom: 8px; }
+  .sub { margin: 0; color: #6e6e73; font-size: 15px; }
+  .section { margin: 28px 4px 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6e6e73; }
+  .section .count { color: #21ad6e; margin-left: 6px; }
+  .idea { background: #fff; border: 1px solid #e8e5dd; border-radius: 18px; padding: 16px 16px 14px; margin: 0 0 10px; }
+  .idea h2 { margin: 0 0 6px; font-size: 18px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+  .blurb { margin: 0 0 10px; font-size: 15px; color: #3a3a3c; }
+  .chips { margin: 0 0 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: rgba(120, 120, 128, 0.12); color: #1c1c1e; }
+  .meta { margin: 0 0 12px; font-size: 13px; color: #6e6e73; }
+  .make { display: inline-block; padding: 9px 16px; border-radius: 999px; background: rgba(33, 173, 110, 0.10); color: #21ad6e; font-weight: 600; font-size: 15px; text-decoration: none; }
+  @media (prefers-color-scheme: dark) {
+    .idea { background: #1c1c1e; border-color: #2c2c2e; }
+    .blurb { color: #d1d1d6; }
+    .chip { color: #ececec; }
+    .sub, .meta, .section { color: #a1a1a6; }
+  }
+</style>`);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=1800",
     },
   });
 }
